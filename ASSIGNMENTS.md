@@ -400,6 +400,27 @@ roadmap.
 
 ---
 
+### 18. Jocelyn Jose - Email Composer Graph
+
+**Use Case:** A user provides a recipient, email purpose, and key points. The
+graph drafts a professional email ready to send.
+
+**Specialist Node 1 - `analyze_email_intent`**
+- Identify the tone, formality level, and goal of the email.
+
+**Specialist Node 2 - `draft_email_body`**
+- Write a complete email with subject line, greeting, body, and sign-off.
+
+**Specialist Node 3 - `check_email_completeness`**
+- Verify all key points are covered and flag any missing details.
+
+**Decision Node:** Decide whether the email should be concise or a detailed
+formal letter based on purpose and recipient.
+
+**Final Nodes:** `concise_email_draft` and `formal_email_draft`.
+
+---
+
 ## Evaluation Criteria
 
 | Criteria | Points |
