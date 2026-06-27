@@ -1,14 +1,14 @@
 # =============================================================================
-# Mental Wellness Practice Suggester -- A LangGraph Learning Project
+# Interview Coach -- A LangGraph Learning Project
 # =============================================================================
 #
-# This project teaches you how LangGraph works by building a mental wellness
-# assistant that suggests personalized calming practices.
+# This project teaches you how LangGraph works by building an interview coaching
+# assistant that provides personalized feedback and suggestions.
 #
 # WHAT THIS DOES:
-# A user enters how they are feeling (e.g. "I feel stressed", "I can't sleep",
+# A user enters their interview preparation needs (e.g. "I feel unprepared", "I can't answer technical questions",
 # "I feel anxious and overwhelmed"). The system runs 3 suggestion engines in
-# PARALLEL (breathing, mindfulness, movement), then a decision node picks the
+# PARALLEL (technical questions, behavioral questions, relaxation techniques), then a decision node picks the
 # best approach and routes to either a QUICK practice (under 5 minutes) or a
 # DEEPER session (10-15 minutes) based on severity.
 #
@@ -66,21 +66,21 @@ class WellnessState(BaseModel):
     mindfulness_suggestion: str = ""
     movement_suggestion: str = ""
     movie_suggestion: str = ""
-    needs_deep_session: bool = False
+    needs_advanced_pack: bool = False
     practice_reason: str = ""
     final_suggestion: str = ""
     messages: Annotated[list, operator.add] = []
 
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.4)
 
 
 def understand_mood(state: WellnessState) -> dict:
     response = llm.invoke(
-        f"You are a compassionate mental wellness assistant. "
+        f"You are a technical recruiter assistant. "
         f"A user says: '{state.user_feeling}'. "
-        f"Acknowledge their feeling warmly in 1-2 sentences. "
-        f"Then classify the severity as MILD, MODERATE, or HIGH in one word on a new line like: Severity: MILD"
+        f"Acknowledge their ask for the job role"
+        f"Then assess and classify the candidate needs as Beginner or Advanced in a word on a new line like: Interview Pack: Beginner"
     )
     return {
         "messages": [f"[understand_mood] {response.content}"]
@@ -89,163 +89,160 @@ def understand_mood(state: WellnessState) -> dict:
 
 def suggest_breathing(state: WellnessState) -> dict:
     response = llm.invoke(
-        f"You are a breathing exercise specialist. "
-        f"The user feels: '{state.user_feeling}'. "
-        f"Suggest ONE specific breathing technique that would help. "
-        f"Include the name, step-by-step instructions (3-4 steps), and how long it takes. "
-        f"Keep it under 5 sentences."
+        f"You are a technical recruiter specialist. "
+        f"The user asks for the following job role: '{state.user_feeling}'. "
+        f"Suggest TEN specific technical questions that would help. "
+        f"Focus on core technical skills, Questions should assess practical knowledge. "
+        f"Keep it under 10 sentences and return only the questions."
     )
     return {
-        "breathing_suggestion": response.content,
+        "Technical_Questions": response.content,
         "messages": [f"[suggest_breathing] Done"]
     }
 
 
 def suggest_mindfulness(state: WellnessState) -> dict:
     response = llm.invoke(
-        f"You are a mindfulness and meditation guide. "
-        f"The user feels: '{state.user_feeling}'. "
-        f"Suggest ONE specific mindfulness or grounding exercise that would help. "
-        f"Include the name, simple instructions, and duration. "
-        f"Keep it under 5 sentences."
+        f"You are an experienced hiring manager. "
+        f"The user asks for the following job role: '{state.user_feeling}'. "
+        f"Suggest TEN specific behavioral questions that would help. "
+        f"Focus on assessing soft skills, teamwork, and problem-solving. "
+        f"Keep it under 10 sentences and return only the questions."
     )
     return {
-        "mindfulness_suggestion": response.content,
+        "behavioral_questions": response.content,
         "messages": [f"[suggest_mindfulness] Done"]
     }
 
 
 def suggest_movement(state: WellnessState) -> dict:
     response = llm.invoke(
-        f"You are a gentle movement and body wellness coach. "
-        f"The user feels: '{state.user_feeling}'. "
-        f"Suggest ONE specific gentle physical activity or stretch that would help. "
-        f"Include the name, simple instructions, and duration. "
-        f"Keep it under 5 sentences."
+        f"You are a domain expert. "
+        f"The user asks for the following job role: '{state.user_feeling}'. "
+        f"Generate 10 highly role-specific interview questions that are tailored to the user's job role. "
+        f"The questions should test: Day-to-day responsibilities, industry knowledge, and problem-solving skills. "
+        f"Keep it under 10 sentences and return only the questions."
     )
     return {
-        "movement_suggestion": response.content,
+        "role_specific_questions": response.content,
         "messages": [f"[suggest_movement] Done"]
     }
 
 
 def pick_best_practice(state: WellnessState) -> dict:
     response = llm.invoke(
-        f"You are a wellness decision system. The user feels: '{state.user_feeling}'.\n\n"
-        f"Here are three suggestions from specialists:\n\n"
-        f"BREATHING:\n{state.breathing_suggestion}\n\n"
-        f"MINDFULNESS:\n{state.mindfulness_suggestion}\n\n"
-        f"MOVEMENT:\n{state.movement_suggestion}\n\n"
-        f"Decide: does this person need a QUICK practice (under 5 min, for mild/moderate feelings) "
-        f"or a DEEP session (10-15 min, for high stress/anxiety/overwhelm)?\n\n"
+        f"You are an interview preparation advisor. The user asks for the following job role: '{state.user_feeling}'.\n\n"
+        f"Here are three questions generators from specialists:\n\n"
+        f"TECHNICAL:\n{state.breathing_suggestion}\n\n"
+        f"BEHAVIORAL:\n{state.mindfulness_suggestion}\n\n"
+        f"ROLE-SPECIFIC:\n{state.movement_suggestion}\n\n"
+        f"Decide: does this person need a BEGINNER preparation pack (Experience is less than 3 years, Confidence level is low, Candidate has less than 7 days to prepare, Candidate explicitly requests fundamentals revision, ) "
+        f"or an ADVANCED preparation pack (Experience is 5+ years, Confidence level is high, Candidate has at least 5 days to prepare, Candidate is targeting senior, lead, architect, manager, or specialist positions, Candidate already understands fundamentals )?\n\n"
         f"Reply STRICTLY in this JSON format (no other text):\n"
-        f'{{"needs_deep_session": true/false, "reason": "one sentence explanation"}}'
+        f'{{"needs_advanced_pack": true/false, "reason": "one sentence explanation"}}'
     )
     try:
         result = json.loads(response.content)
-        needs_deep = result["needs_deep_session"]
+        needs_advanced = result["needs_advanced_pack"]
         reason = result["reason"]
     except (json.JSONDecodeError, KeyError):
-        needs_deep = False
-        reason = "Could not parse decision, defaulting to quick practice."
+        needs_advanced = False
+        reason = "Could not parse decision, defaulting to beginner pack."
 
     return {
-        "needs_deep_session": needs_deep,
+        "needs_advanced_pack": needs_advanced,
         "practice_reason": reason,
-        "messages": [f"[pick_best_practice] deep_session={needs_deep}"]
+        "messages": [f"[pick_best_practice] advanced_pack={needs_advanced}"]
     }
 
 
 def quick_practice(state: WellnessState) -> dict:
     response = llm.invoke(
-        f"You are a friendly wellness coach. The user feels: '{state.user_feeling}'.\n\n"
-        f"Based on these specialist suggestions, create a SHORT practice (under 5 minutes) "
-        f"that combines the best elements:\n\n"
-        f"BREATHING: {state.breathing_suggestion}\n"
-        f"MINDFULNESS: {state.mindfulness_suggestion}\n"
-        f"MOVEMENT: {state.movement_suggestion}\n\n"
+        f"You are an  expert interview coach. The user asks for the following job role: '{state.user_feeling}'.\n\n"
+        f"Based on these specialist suggestions, generate a beginner interview practice pack "
+        f"that combines the beginner level interview preparation questions focussing on fundamentals:\n\n"
+        f"TECHNICAL: {state.breathing_suggestion}\n"
+        f"BEHAVIORAL: {state.mindfulness_suggestion}\n"
+        f"ROLE-SPECIFIC: {state.movement_suggestion}\n\n"
         f"Format it as a simple numbered list of steps. "
-        f"Keep it warm, encouraging, and easy to follow. End with a kind closing line."
+        f"Keep it encouraging, and easy to follow. End with a kind closing line."
     )
     return {
-        "final_suggestion": f"QUICK WELLNESS PRACTICE (under 5 min)\n{'='*45}\n{response.content}",
+        "final_suggestion": f"BEGINNER INTERVIEW PRACTICE PACK\n{'='*45}\n{response.content}",
         "messages": [f"[quick_practice] Generated quick practice"]
     }
 
 
 def deep_practice(state: WellnessState) -> dict:
     response = llm.invoke(
-        f"You are a compassionate wellness coach. The user feels: '{state.user_feeling}'.\n\n"
-        f"Based on these specialist suggestions, create a DEEPER session (10-15 minutes) "
-        f"that thoughtfully combines all three approaches:\n\n"
-        f"BREATHING: {state.breathing_suggestion}\n"
-        f"MINDFULNESS: {state.mindfulness_suggestion}\n"
-        f"MOVEMENT: {state.movement_suggestion}\n\n"
-        f"Structure it in 3 phases: Settle (breathing), Ground (mindfulness), Release (movement). "
-        f"Give clear step-by-step instructions for each phase with timing. "
+        f"You are an  expert interview coach. The user asks for the following job role: '{state.user_feeling}'.\n\n"
+        f"Based on these specialist suggestions, generate an advanced interview practice pack "
+        f"that thoughtfully combines all three components:\n\n"
+        f"TECHNICAL: {state.breathing_suggestion}\n"
+        f"BEHAVIORAL: {state.mindfulness_suggestion}\n"
+        f"ROLE-SPECIFIC: {state.movement_suggestion}\n\n"
+        f"Structure it in 3 phases: Technical, Behavioral, Role-Specific. "
         f"Keep it warm and supportive. End with a kind closing message."
     )
     return {
-        "final_suggestion": f"DEEP WELLNESS SESSION (10-15 min)\n{'='*45}\n{response.content}",
+        "final_suggestion": f"ADVANCED INTERVIEW PRACTICE PACK\n{'='*45}\n{response.content}",
         "messages": [f"[deep_practice] Generated deep session"]
     }
 
 
 def route_after_decision(state: WellnessState) -> str:
-    if state.needs_deep_session:
-        return "deep"
+    if state.needs_advanced_pack:
+        return "advanced"
     else:
-        return "quick"
+        return "beginner"
 
+def assemble_pack(state):
+    # Could do nothing
+    return {}
 
 graph = StateGraph(WellnessState)
 
 graph.add_node("understand_mood", understand_mood)
+graph.add_node("pick_best_practice", pick_best_practice)
+graph.add_node("assemble_pack", assemble_pack)
 graph.add_node("suggest_breathing", suggest_breathing)
 graph.add_node("suggest_mindfulness", suggest_mindfulness)
 graph.add_node("suggest_movement", suggest_movement)
-graph.add_node("pick_best_practice", pick_best_practice)
 graph.add_node("quick_practice", quick_practice)
 graph.add_node("deep_practice", deep_practice)
 
 graph.add_edge(START, "understand_mood")
-
-graph.add_edge("understand_mood", "suggest_breathing")
-graph.add_edge("understand_mood", "suggest_mindfulness")
-graph.add_edge("understand_mood", "suggest_movement")
-
-graph.add_edge("suggest_breathing", "pick_best_practice")
-graph.add_edge("suggest_mindfulness", "pick_best_practice")
-graph.add_edge("suggest_movement", "pick_best_practice")
-
+graph.add_edge("understand_mood", "pick_best_practice")  # This edge is needed to ensure the decision node waits for the suggestions, but the suggestions will run in parallel
+graph.add_edge("pick_best_practice", "suggest_breathing")
+graph.add_edge("pick_best_practice", "suggest_mindfulness")
+graph.add_edge("pick_best_practice", "suggest_movement")
+graph.add_edge("suggest_breathing", "assemble_pack")
+graph.add_edge("suggest_mindfulness", "assemble_pack")
+graph.add_edge("suggest_movement", "assemble_pack")
 graph.add_conditional_edges(
-    "pick_best_practice",
+    "assemble_pack",
     route_after_decision,
     {
-        "quick": "quick_practice",
-        "deep": "deep_practice",
+        "beginner": "quick_practice",
+        "advanced": "deep_practice",
     }
 )
-
 graph.add_edge("quick_practice", END)
 graph.add_edge("deep_practice", END)
-
+graph.add_edge
 app = graph.compile()
 
 
 def run_wellness_check(feeling: str):
     print("=" * 55)
-    print("  MENTAL WELLNESS PRACTICE SUGGESTER")
+    print("  Personalized Interview Practice Suggester")
     print(f"  You said: \"{feeling}\"")
     print("=" * 55)
 
-    result = app.invoke({
-        "user_feeling": feeling,
-        "messages": [],
-    })
+    result = app.invoke(WellnessState(user_feeling=feeling, messages=[]))
 
     print("\n" + "=" * 55)
-    print("  YOUR PERSONALIZED PRACTICE")
+    print("  YOUR PERSONALIZED INTERVIEW PRACTICE")
     print("=" * 55)
     print(f"\n{result['final_suggestion']}")
 
@@ -260,10 +257,10 @@ def run_wellness_check(feeling: str):
 
 if __name__ == "__main__":
     print("\n" + "=" * 55)
-    print("  MENTAL WELLNESS PRACTICE SUGGESTER")
+    print("  INTERVIEW PRACTICE SUGGESTER")
     print("=" * 55)
-    print("\n  Tell me how you're feeling and I'll suggest a")
-    print("  personalized wellness practice just for you.")
+    print("\n  Tell me how you're doing and I'll suggest a")
+    print("  personalized interview practice just for you.")
     print("  Type 'quit' to exit.\n")
 
     while True:
